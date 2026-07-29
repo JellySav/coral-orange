@@ -83,17 +83,20 @@ python modules/bleaching_alert.py
 ```
 
 ### Controles Generales
-Flechas ARRIBA / ABAJO: Navegar por el menú principal (main.py).
+* Flechas ARRIBA / ABAJO: Navegar por el menú principal (main.py).
 
-ENTER: Seleccionar/Iniciar módulo.
+* ENTER: Seleccionar/Iniciar módulo.
 
-ESPACIO: Acción e interacción principal dentro de cada módulo (ej. inyección de solución amortiguadora en Acidification Lab).
+* ESPACIO: Acción e interacción principal dentro de cada módulo (ej. inyección de solución amortiguadora en Acidification Lab).
 
-R: Reiniciar la simulación actual tras un estado de fin de juego (Game Over o Victoria).
+* R: Reiniciar la simulación actual tras un estado de fin de juego (Game Over o Victoria).
 
-ESC: Volver al menú principal desde cualquier módulo / Salir del juego.
+* ESC: Volver al menú principal desde cualquier módulo / Salir del juego.
+
 
 ### Fundamentos Científicos
-Relación de pH y $CO_2$: Basada en la escala logarítmica de la concentración de dióxido de carbono disuelto en agua superficial.
-Saturación de Aragónita ($\Omega$): Define la viabilidad metabólica de la calcificación biogénica en invertebrados marinos ($\Omega > 3.0$ estado óptimo; $\Omega < 1.0$ disolución activa de estructuras calcáreas).
-Telemetría HydroLog: Registro dinámico de salinidad, temperatura y pH para monitoreo de condiciones ambientales en tiempo real.
+* Relación de pH y $CO_2$: Basada en la escala logarítmica de la concentración de dióxido de carbono disuelto en agua superficial.
+
+* Saturación de Aragónita ($\Omega$): Define la viabilidad metabólica de la calcificación biogénica en invertebrados marinos ($\Omega > 3.0$ estado óptimo; $\Omega < 1.0$ disolución activa de estructuras calcáreas).
+
+* Telemetría HydroLog: Registro dinámico de salinidad, temperatura y pH para monitoreo de condiciones ambientales en tiempo real.
