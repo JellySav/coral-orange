@@ -2,7 +2,7 @@
 
 > **Coral Orange** es un repostiorio bajo un mini reto personal a traves de la tematica de un objeto/espacio y un color. 
 
-> Una serie de minijuegos de simulación interactiva desarrollada en **Python + Pygame** enfocada en la conservación marina, la química del océano y el modelado ecológico de los arrecifes de coral.
+Una serie de minijuegos de simulación interactiva desarrollada en **Python + Pygame** enfocada en la conservación marina, la química del océano y el modelado ecológico de los arrecifes de coral.
 
 El proyecto combina mecánicas de simulación en tiempo real, dinámica de sistemas biológicos y visualización de datos oceanográficos para educar y experimentar con los efectos del cambio climático en los ecosistemas marinos.
 
@@ -84,9 +84,13 @@ python modules/bleaching_alert.py
 
 ### Controles Generales
 Flechas ARRIBA / ABAJO: Navegar por el menú principal (main.py).
+
 ENTER: Seleccionar/Iniciar módulo.
+
 ESPACIO: Acción e interacción principal dentro de cada módulo (ej. inyección de solución amortiguadora en Acidification Lab).
+
 R: Reiniciar la simulación actual tras un estado de fin de juego (Game Over o Victoria).
+
 ESC: Volver al menú principal desde cualquier módulo / Salir del juego.
 
 ### Fundamentos Científicos
