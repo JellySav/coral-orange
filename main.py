@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from modules.bleaching_alert import BleachingAlertModule
+from modules.clown_symbiosis import ClownSymbiosisModule
 
 
 class CoralOrangeLauncher:
@@ -40,7 +41,7 @@ class CoralOrangeLauncher:
                 "id": 2,
                 "title": "2. CLOWN SYMBIOSIS",
                 "desc": "Mantenimiento de Mutualismo entre Pez Payaso y Anémonas",
-                "active": False
+                "active": True
             },
             {
                 "id": 3,
@@ -105,8 +106,10 @@ class CoralOrangeLauncher:
         """Inicializa el módulo seleccionado."""
         if self.selected_index == 0:
             self.active_module = BleachingAlertModule(self.width, self.height)
+        elif self.selected_index == 1:
+            elf.active_module = ClownSymbiosisModule(self.width, self.height)
         else:
-            # Los módulos 2, 3 y 4 se irán integrando secuencialmente
+            # Los módulos 3 y 4 se irán integrando aqui, si es otro numero seria el caso else 
             pass
 
     def _draw_menu(self):
