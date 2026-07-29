@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from modules.bleaching_alert import BleachingAlertModule
 from modules.clown_symbiosis import ClownSymbiosisModule
 from modules.trophic_balance import TrophicBalanceModule
+from modules.acidification_lab import AcidificationLabModule
 
 
 class CoralOrangeLauncher:
@@ -54,7 +55,7 @@ class CoralOrangeLauncher:
                 "id": 4,
                 "title": "4. ACIDIFICATION LAB",
                 "desc": "Química Marina, Monitoreo de pH y Calcificación Calcárea",
-                "active": False
+                "active": True
             }
         ]
 
@@ -111,6 +112,8 @@ class CoralOrangeLauncher:
             elf.active_module = ClownSymbiosisModule(self.width, self.height)
         elif self.selected_index == 2:
             self.active_module = TrophicBalanceModule(self.width, self.height)
+        elif self.selected_index == 3:
+            self.active_module = AcidificationLabModule(self.width, self.height)
         else:
             # Los módulos 3 y 4 se irán integrando aqui, si es otro numero seria el caso else 
             pass
