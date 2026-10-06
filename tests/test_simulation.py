@@ -1,5 +1,9 @@
 import os
 import unittest
+from functools import partial
+from http.server import ThreadingHTTPServer
+from threading import Thread
+from urllib.request import urlopen
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
@@ -12,7 +16,7 @@ from modules.acidification_lab import AcidificationLabModule
 from modules.bleaching_alert import BleachingAlertModule
 from modules.clown_symbiosis import ClownSymbiosisModule
 from modules.trophic_balance import Creature, TrophicBalanceModule
-from serve_game import CDN_ROUTE, rewrite_html
+from serve_game import CDN_ROUTE, GameRequestHandler, WEB_ROOT, rewrite_html
 
 
 class SimulationTests(unittest.TestCase):
@@ -51,6 +55,24 @@ class SimulationTests(unittest.TestCase):
         self.assertIn(CDN_ROUTE.encode() + b"0.9.3/pythons.js", rewritten)
         self.assertNotIn(b"pygame-web.github.io", rewritten)
         self.assertNotIn(b"browserfs.min.js", rewritten)
+
+    def test_web_server_rewrites_the_root_page(self):
+        handler = partial(GameRequestHandler, directory=str(WEB_ROOT))
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with urlopen(f"http://127.0.0.1:{server.server_port}/") as response:
+                page = response.read()
+                self.assertEqual(response.status, 200)
+                self.assertEqual(response.headers.get("Cross-Origin-Embedder-Policy"), "require-corp")
+                self.assertIn(b"/__runtime_cdn__/0.9.3/pythons.js", page)
+                self.assertNotIn(b"https://pygame-web.github.io/cdn/", page)
+                self.assertNotIn(b"browserfs.min.js", page)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
 
     def test_simulation_rates_are_stable_at_30_and_60_fps(self):
         coral_60 = ReefOrganism("a", "coral", 0, 0, "CORAL", (255, 127, 80))

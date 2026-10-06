@@ -42,7 +42,7 @@ class GameRequestHandler(SimpleHTTPRequestHandler):
     def send_head(self):
         request_path = urlsplit(self.path).path
         if request_path == "/" or request_path.endswith("/index.html"):
-            index_path = Path(self.translate_path(self.path))
+            index_path = WEB_ROOT / "index.html" if request_path == "/" else Path(self.translate_path(self.path))
             if index_path.is_file():
                 content = rewrite_html(index_path.read_bytes())
                 response = io.BytesIO(content)
@@ -59,12 +59,8 @@ class GameRequestHandler(SimpleHTTPRequestHandler):
             return False
 
         relative_path = path[len(CDN_ROUTE):]
-        if not relative_path or ".." in Path(relative_path).parts:
-            self.send_error(404)
-            return True
-
-        version, separator, resource = relative_path.partition("/")
-        if not separator or not resource or not re.fullmatch(r"\d+(?:\.\d+)*", version):
+        path_parts = Path(relative_path).parts
+        if not relative_path or any(part in ("", ".", "..") for part in path_parts):
             self.send_error(404)
             return True
 
