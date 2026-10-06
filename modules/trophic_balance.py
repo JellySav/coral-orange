@@ -34,17 +34,20 @@ class Creature:
             self.radius = 18
             self.color = (112, 128, 144)
 
-    def move(self, bounds_x, bounds_y):
+    def move(self, bounds_x, bounds_y, delta_time):
         if self.species == "ALGAE":
             return
 
-        self.x += self.vx
-        self.y += self.vy
+        frame_scale = delta_time * 60.0
+        self.x += self.vx * frame_scale
+        self.y += self.vy * frame_scale
 
         # Rebote en bordes del mapa
         if self.x < bounds_x[0] or self.x > bounds_x[1]:
+            self.x = max(bounds_x[0], min(bounds_x[1], self.x))
             self.vx *= -1
         if self.y < bounds_y[0] or self.y > bounds_y[1]:
+            self.y = max(bounds_y[0], min(bounds_y[1], self.y))
             self.vy *= -1
 
     def draw(self, screen):
@@ -112,23 +115,24 @@ class TrophicBalanceModule:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
             if self.mpa_cooldown <= 0:
                 self.mpa_active = not self.mpa_active
-                self.mpa_cooldown = 60  # Cooldown suave de 1 segundo
+                self.mpa_cooldown = 1.0  # Cooldown suave de 1 segundo
 
     def update(self, delta_time):
         if self.game_over:
             return
 
+        frame_scale = delta_time * 60.0
         self.survival_time += delta_time
         if self.survival_time >= self.target_time:
             self.win_condition = True
             self.game_over = True
 
         if self.mpa_cooldown > 0:
-            self.mpa_cooldown -= 1
+            self.mpa_cooldown = max(0.0, self.mpa_cooldown - delta_time)
 
         # 1. Mover criaturas
         for c in self.creatures:
-            c.move(self.bounds_x, self.bounds_y)
+            c.move(self.bounds_x, self.bounds_y, delta_time)
 
         # 2. Interacciones Depredación / Consumo
         algae = [c for c in self.creatures if c.species == "ALGAE"]
@@ -161,7 +165,8 @@ class TrophicBalanceModule:
                         break
 
         # 3. Presión de Pesca Furtiva fuera de la AMP
-        if random.random() < 0.04:  # Evento de pesca
+        fishing_chance = 1.0 - (1.0 - 0.04) ** delta_time
+        if random.random() < fishing_chance:  # Evento de pesca
             target_species = "SHARK" if len(sharks) > 1 else "CARNIVORE"
             candidates = [c for c in self.creatures if c.species == target_species]
             
@@ -172,13 +177,21 @@ class TrophicBalanceModule:
                     break
 
         # 4. Crecimiento orgánico de algas y reproducción básica
-        if len(algae) < 50 and random.random() < 0.2:
+        current_algae = sum(c.species == "ALGAE" for c in self.creatures)
+        algae_growth_chance = 1.0 - (1.0 - 0.2) ** delta_time
+        if current_algae < 50 and random.random() < algae_growth_chance:
             ax = random.randint(self.bounds_x[0], self.bounds_x[1])
             ay = random.randint(self.bounds_y[0], self.bounds_y[1])
             self.creatures.append(Creature("ALGAE", ax, ay))
 
-        if len(herbs) > 0 and len(herbs) < 15 and random.random() < 0.03:
-            self.creatures.append(Creature("HERBIVORE", random.randint(100, 800), random.randint(200, 500)))
+        current_herbivores = sum(c.species == "HERBIVORE" for c in self.creatures)
+        herbivore_growth_chance = 1.0 - (1.0 - 0.03) ** delta_time
+        if current_herbivores > 0 and current_herbivores < 15 and random.random() < herbivore_growth_chance:
+            self.creatures.append(Creature(
+                "HERBIVORE",
+                random.randint(self.bounds_x[0], self.bounds_x[1]),
+                random.randint(self.bounds_y[0], self.bounds_y[1]),
+            ))
 
         # 5. Evaluación de colapso de red trófica
         curr_sharks = len([c for c in self.creatures if c.species == "SHARK"])
@@ -192,7 +205,12 @@ class TrophicBalanceModule:
 
         # Logs
         status = "AMP ACTIVA [ZONA PROTEGIDA]" if self.mpa_active else "PESCA ABIERTA [RIESGO]"
-        self.hydro_log.push_log(26.5, 8.1, f"Tiburones: {curr_sharks} | {status}")
+        self.hydro_log.push_log(
+            26.5,
+            8.1,
+            f"Tiburones: {curr_sharks} | {status}",
+            delta_time,
+        )
 
     def draw(self, screen, font_large, font_small):
         # Fondo Océano Profundo
@@ -223,19 +241,16 @@ class TrophicBalanceModule:
         screen.blit(btn_text, (self.width - btn_text.get_width() - 20, 60))
 
         # Leyenda de Niveles Tróficos
-        legend_x = 320
-        legend_y = 20
-        pygame.draw.circle(screen, (112, 128, 144), (legend_x, legend_y + 10), 6)
-        screen.blit(font_small.render("Tiburón", True, (200, 200, 200)), (legend_x + 12, legend_y + 2))
-
-        pygame.draw.circle(screen, (255, 140, 0), (legend_x + 90, legend_y + 10), 6)
-        screen.blit(font_small.render("Carnívoro", True, (200, 200, 200)), (legend_x + 102, legend_y + 2))
-
-        pygame.draw.circle(screen, (0, 206, 209), (legend_x + 200, legend_y + 10), 6)
-        screen.blit(font_small.render("Herbívoro", True, (200, 200, 200)), (legend_x + 212, legend_y + 2))
-
-        pygame.draw.circle(screen, (50, 205, 50), (legend_x + 310, legend_y + 10), 6)
-        screen.blit(font_small.render("Alga", True, (200, 200, 200)), (legend_x + 322, legend_y + 2))
+        legend_y = self.height - 30
+        legend_items = (
+            (40, (112, 128, 144), "Tiburón"),
+            (155, (255, 140, 0), "Carnívoro"),
+            (300, (0, 206, 209), "Herbívoro"),
+            (455, (50, 205, 50), "Alga"),
+        )
+        for legend_x, color, label in legend_items:
+            pygame.draw.circle(screen, color, (legend_x, legend_y + 10), 6)
+            screen.blit(font_small.render(label, True, (200, 200, 200)), (legend_x + 12, legend_y + 2))
 
         # 4. Pantalla de Fin de Juego / Victoria
         if self.game_over:

@@ -16,17 +16,18 @@ class ReefOrganism:
         self.health = 100.0              # 0 a 100%
         self.bleached = False
 
-    def update_health(self, temp_celsius, ocean_ph):
+    def update_health(self, temp_celsius, ocean_ph, delta_time=1 / 60):
         """Actualiza el estado de salud según la temperatura y el pH."""
+        frame_scale = delta_time * 60.0
         # Estrés térmico en corales
         if self.species_type == "CORAL":
             if temp_celsius > 29.0:
-                self.health -= 0.5
+                self.health = max(0.0, self.health - 0.5 * frame_scale)
                 if self.health < 40.0:
                     self.bleached = True
                     self.color = (220, 220, 220)  # Pierde su color Coral Orange
             elif temp_celsius <= 28.0 and self.health < 100:
-                self.health += 0.2
+                self.health = min(100.0, self.health + 0.2 * frame_scale)
 
     def draw(self, screen, font):
         """Renderizado en pantalla según el tipo de organismo."""
@@ -38,5 +39,7 @@ class ReefOrganism:
         pygame.draw.circle(screen, border_color, (int(self.x), int(self.y)), radius + 3, 2)
 
         # Nombre del organismo
-        label = font.render(f"{self.name}", True, (240, 240, 240))
+        identifier = str(self.organism_id)
+        label_text = f"#{identifier.rsplit('-', 1)[-1]}" if "-" in identifier else self.name
+        label = font.render(label_text, True, (240, 240, 240))
         screen.blit(label, (int(self.x) - label.get_width() // 2, int(self.y) + radius + 5))

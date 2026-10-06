@@ -93,8 +93,8 @@ class BleachingAlertModule:
         """Activa una corriente fría de emergencia si hay cargas disponibles."""
         if self.cooling_charges > 0 and self.cooling_cooldown <= 0:
             self.cooling_charges -= 1
-            self.cooling_active_timer = 120  # La corriente dura 2 segundos (~120 FPS)
-            self.cooling_cooldown = 180      # Reutilización en 3 segundos
+            self.cooling_active_timer = 2.0  # La corriente dura 2 segundos
+            self.cooling_cooldown = 3.0      # Reutilización en 3 segundos
 
     def update(self, delta_time):
         """Lógica principal de simulación física y biológica."""
@@ -108,11 +108,11 @@ class BleachingAlertModule:
 
         # 1. Gestión de Cooldowns y Habilidades
         if self.cooling_cooldown > 0:
-            self.cooling_cooldown -= 1
+            self.cooling_cooldown = max(0.0, self.cooling_cooldown - delta_time)
             
         cooling_effect = 0.0
         if self.cooling_active_timer > 0:
-            self.cooling_active_timer -= 1
+            self.cooling_active_timer = max(0.0, self.cooling_active_timer - delta_time)
             cooling_effect = -2.5  # Enfría 2.5 °C drásticamente
 
         # 2. Dinámica de Olas de Calor (Ciclos Térmicos)
@@ -123,9 +123,9 @@ class BleachingAlertModule:
             
         if self.heat_wave_active:
             # Incremento progresivo de temperatura de hasta +4.0 °C
-            self.heat_intensity = min(4.0, self.heat_intensity + 0.01)
+            self.heat_intensity = min(4.0, self.heat_intensity + 0.01 * delta_time * 60.0)
         else:
-            self.heat_intensity = max(0.0, self.heat_intensity - 0.015)
+            self.heat_intensity = max(0.0, self.heat_intensity - 0.015 * delta_time * 60.0)
 
         # Ruido térmico suave + efecto de ola de calor + efecto de enfriamiento
         thermal_noise = math.sin(pygame.time.get_ticks() * 0.002) * 0.3
@@ -134,7 +134,11 @@ class BleachingAlertModule:
         # 3. Actualizar estado de salud de la colonia de corales
         bleached_count = 0
         for coral in self.corals:
-            coral.update_health(temp_celsius=self.current_temp, ocean_ph=self.ocean_ph)
+            coral.update_health(
+                temp_celsius=self.current_temp,
+                ocean_ph=self.ocean_ph,
+                delta_time=delta_time,
+            )
             if coral.bleached:
                 bleached_count += 1
 
@@ -148,7 +152,7 @@ class BleachingAlertModule:
         if self.cooling_active_timer > 0:
             status_msg = "INYECCIÓN FRÍA ACTIVA"
             
-        self.hydro_log.push_log(self.current_temp, self.ocean_ph, status_msg)
+        self.hydro_log.push_log(self.current_temp, self.ocean_ph, status_msg, delta_time)
 
     def draw(self, screen, font_large, font_small):
         """Renderizado completo del canvas."""

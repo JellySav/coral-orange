@@ -20,13 +20,16 @@ class CarbonateMolecule:
         self.vx = random.uniform(-0.8, 0.8)
         self.vy = random.uniform(-0.8, 0.8)
 
-    def update(self, bounds_x, bounds_y):
-        self.x += self.vx
-        self.y += self.vy
+    def update(self, bounds_x, bounds_y, delta_time):
+        frame_scale = delta_time * 60.0
+        self.x += self.vx * frame_scale
+        self.y += self.vy * frame_scale
 
         if self.x < bounds_x[0] or self.x > bounds_x[1]:
+            self.x = max(bounds_x[0], min(bounds_x[1], self.x))
             self.vx *= -1
         if self.y < bounds_y[0] or self.y > bounds_y[1]:
+            self.y = max(bounds_y[0], min(bounds_y[1], self.y))
             self.vy *= -1
 
     def draw(self, screen):
@@ -98,13 +101,14 @@ class AcidificationLabModule:
     def _apply_buffer(self):
         if self.buffer_charges > 0 and self.buffer_cooldown <= 0:
             self.buffer_charges -= 1
-            self.buffer_effect_timer = 90  # Dura 1.5 segundos (~90 FPS)
-            self.buffer_cooldown = 150     # Cooldown de 2.5 segundos
+            self.buffer_effect_timer = 1.5  # Dura 1.5 segundos
+            self.buffer_cooldown = 2.5      # Cooldown de 2.5 segundos
 
     def update(self, delta_time):
         if self.game_over:
             return
 
+        frame_scale = delta_time * 60.0
         self.survival_time += delta_time
         if self.survival_time >= self.target_time:
             self.win_condition = True
@@ -112,18 +116,19 @@ class AcidificationLabModule:
 
         # 1. Cooldowns
         if self.buffer_cooldown > 0:
-            self.buffer_cooldown -= 1
+            self.buffer_cooldown = max(0.0, self.buffer_cooldown - delta_time)
 
         buffer_power = 0.0
         if self.buffer_effect_timer > 0:
-            self.buffer_effect_timer -= 1
-            buffer_power = 0.015  # Eleva el pH gradualmente
+            self.buffer_effect_timer = max(0.0, self.buffer_effect_timer - delta_time)
+            buffer_power = 0.015 * frame_scale  # Eleva el pH gradualmente
 
         # 2. Dinámica Química (CO2 disuelto reduce el pH)
-        self.co2_ppm += self.co2_emission_rate
+        self.co2_ppm += self.co2_emission_rate * frame_scale
         # Relación logarítmica simplificada de pH respecto a CO2
         target_ph = 8.1 - (math.log10(self.co2_ppm / 400.0) * 0.8) + buffer_power
-        self.ph += (target_ph - self.ph) * 0.05
+        response = 1.0 - (1.0 - 0.05) ** frame_scale
+        self.ph += (target_ph - self.ph) * response
 
         # 3. Cálculo del Estado de Saturación de Aragónita (Omega Ω)
         # pH 8.1 -> Ω ≈ 3.8 | pH < 7.7 -> Ω < 1.0 (Disolución activa)
@@ -132,15 +137,15 @@ class AcidificationLabModule:
         # Impacto en la calcificación
         if self.aragonite_sat < 1.5:
             # Erosión / Disolución estructural
-            self.calcification_rate = max(0.0, self.calcification_rate - 0.18)
+            self.calcification_rate = max(0.0, self.calcification_rate - 0.18 * frame_scale)
         else:
             # Calcificación saludable
-            self.calcification_rate = min(100.0, self.calcification_rate + 0.05)
+            self.calcification_rate = min(100.0, self.calcification_rate + 0.05 * frame_scale)
 
         # 4. Actualizar Estado de Moléculas según pH
         carbonate_ratio = max(0.1, min(1.0, (self.ph - 7.4) / 0.8))
         for m in self.molecules:
-            m.update(self.bounds_x, self.bounds_y)
+            m.update(self.bounds_x, self.bounds_y, delta_time)
             m.is_carbonate = random.random() < carbonate_ratio
 
         # Condición de Derrota
@@ -150,7 +155,12 @@ class AcidificationLabModule:
 
         # Logs Químicos
         status = "AMORTIGUADOR ACTIVO" if self.buffer_effect_timer > 0 else "ACIDIFICACIÓN EN PROCESO"
-        self.hydro_log.push_log(26.5, self.ph, f"Ω Aragónita: {self.aragonite_sat:.2f} | {status}")
+        self.hydro_log.push_log(
+            26.5,
+            self.ph,
+            f"Ω Aragónita: {self.aragonite_sat:.2f} | {status}",
+            delta_time,
+        )
 
     def draw(self, screen, font_large, font_small):
         # Color de agua según el pH (Azul marino sano -> Amarillo/Verde ácido)

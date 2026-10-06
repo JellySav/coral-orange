@@ -36,11 +36,12 @@ class ButterflyFish:
         self.radius = 16
         self.active = True
 
-    def update(self):
+    def update(self, delta_time):
         # Moverse hacia la anémona
         angle = math.atan2(self.target_y - self.y, self.target_x - self.x)
-        self.x += math.cos(angle) * self.speed
-        self.y += math.sin(angle) * self.speed
+        frame_scale = delta_time * 60.0
+        self.x += math.cos(angle) * self.speed * frame_scale
+        self.y += math.sin(angle) * self.speed * frame_scale
 
     def draw(self, screen):
         if self.active:
@@ -104,6 +105,7 @@ class ClownSymbiosisModule:
         if self.game_over:
             return
 
+        frame_scale = delta_time * 60.0
         self.survival_time += delta_time
         if self.survival_time >= self.target_time:
             self.win_condition = True
@@ -123,8 +125,8 @@ class ClownSymbiosisModule:
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             self.fish_vy = self.fish_speed
 
-        self.fish_x = max(20, min(self.width - 20, self.fish_x + self.fish_vx))
-        self.fish_y = max(20, min(self.height - 20, self.fish_y + self.fish_vy))
+        self.fish_x = max(20, min(self.width - 20, self.fish_x + self.fish_vx * frame_scale))
+        self.fish_y = max(20, min(self.height - 20, self.fish_y + self.fish_vy * frame_scale))
 
         # 2. Interacción con la Anémona
         dist_to_anemone = math.hypot(self.fish_x - self.anemone_x, self.fish_y - self.anemone_y)
@@ -132,10 +134,10 @@ class ClownSymbiosisModule:
 
         if in_anemone:
             # Recargar capa de mucosidad estando dentro de los tentáculos
-            self.mucus_layer = min(100.0, self.mucus_layer + 1.2)
+            self.mucus_layer = min(100.0, self.mucus_layer + 1.2 * frame_scale)
         else:
             # Degradar mucosidad progresivamente en mar abierto
-            self.mucus_layer = max(0.0, self.mucus_layer - 0.15)
+            self.mucus_layer = max(0.0, self.mucus_layer - 0.15 * frame_scale)
 
         # 3. Spawns de Parásitos y Depredadores
         self.parasite_timer += delta_time
@@ -153,7 +155,7 @@ class ClownSymbiosisModule:
         # 4. Actualizar Parásitos y Limpieza
         for p in self.parasites:
             if p.alive:
-                self.anemone_health = max(0.0, self.anemone_health - 0.02)
+                self.anemone_health = max(0.0, self.anemone_health - 0.02 * frame_scale)
                 # Colisión Pez - Parásito (Limpieza)
                 if math.hypot(self.fish_x - p.x, self.fish_y - p.y) < self.fish_radius + p.radius:
                     p.alive = False
@@ -163,7 +165,7 @@ class ClownSymbiosisModule:
         # 5. Actualizar Depredadores (Peces Mariposa)
         for pred in self.predators:
             if pred.active:
-                pred.update()
+                pred.update(delta_time)
                 # Si llega a la anémona, la muerde
                 if math.hypot(pred.x - self.anemone_x, pred.y - self.anemone_y) < self.anemone_radius:
                     self.anemone_health = max(0.0, self.anemone_health - 8.0)
@@ -184,7 +186,12 @@ class ClownSymbiosisModule:
         status = "PROTECCIÓN ACTIVA" if in_anemone else "EN PATRULLA"
         if self.mucus_layer < 25:
             status = "CRÍTICO: MUCUS BAJO"
-        self.hydro_log.push_log(26.5, 8.1, f"Anémona: {int(self.anemone_health)}% | {status}")
+        self.hydro_log.push_log(
+            26.5,
+            8.1,
+            f"Anémona: {int(self.anemone_health)}% | {status}",
+            delta_time,
+        )
 
     def draw(self, screen, font_large, font_small):
         # Fondo Océano
@@ -232,16 +239,16 @@ class ClownSymbiosisModule:
         screen.blit(time_text, (self.width - time_text.get_width() - 20, 20))
 
         # Barra de Mucosidad del Pez
-        pygame.draw.rect(screen, (40, 40, 40), (self.width - 220, 60, 200, 14))
-        pygame.draw.rect(screen, (0, 220, 255), (self.width - 220, 60, int(200 * (self.mucus_layer / 100.0)), 14))
+        pygame.draw.rect(screen, (40, 40, 40), (self.width - 220, 68, 200, 14))
+        pygame.draw.rect(screen, (0, 220, 255), (self.width - 220, 68, int(200 * (self.mucus_layer / 100.0)), 14))
         mucus_lbl = font_small.render("Capa Mucosa (Anémona):", True, (200, 240, 255))
-        screen.blit(mucus_lbl, (self.width - 220, 42))
+        screen.blit(mucus_lbl, (self.width - 220, 50))
 
         # Barra de Salud de la Anémona
-        pygame.draw.rect(screen, (40, 40, 40), (self.width - 220, 100, 200, 14))
-        pygame.draw.rect(screen, (230, 80, 160), (self.width - 220, 100, int(200 * (self.anemone_health / 100.0)), 14))
+        pygame.draw.rect(screen, (40, 40, 40), (self.width - 220, 114, 200, 14))
+        pygame.draw.rect(screen, (230, 80, 160), (self.width - 220, 114, int(200 * (self.anemone_health / 100.0)), 14))
         anemone_lbl = font_small.render("Salud de la Anémona:", True, (255, 180, 220))
-        screen.blit(anemone_lbl, (self.width - 220, 82))
+        screen.blit(anemone_lbl, (self.width - 220, 96))
 
         # 6. Fin de juego / Victoria
         if self.game_over:
