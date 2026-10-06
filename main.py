@@ -33,6 +33,7 @@ class CoralOrangeLauncher:
         self.font_option = pygame.font.SysFont("sans", 19, bold=True)
         self.font_sub = pygame.font.SysFont("sans", 14)
         self.font_micro = pygame.font.SysFont("sans", 11, bold=True)
+        self.font_intro_title = pygame.font.SysFont("sans", 27, bold=True)
         self.elapsed = 0.0
         self.module_colors = [
             (255, 126, 92),
@@ -51,6 +52,9 @@ class CoralOrangeLauncher:
                 "id": 1,
                 "title": "1. BLEACHING ALERT",
                 "desc": "Simulación de Olas de Calor y Estrés Térmico en Corales",
+                "objective": "Mantén viva la colonia durante la ola de calor.",
+                "concept": "El estrés térmico prolongado puede provocar blanqueamiento y pérdida de zooxantelas.",
+                "controls": "ESPACIO: aplicar un pulso frío. Reserva tus cargas para los picos de temperatura.",
                 "active": True,
                 "module": BleachingAlertModule
             },
@@ -58,6 +62,9 @@ class CoralOrangeLauncher:
                 "id": 2,
                 "title": "2. CLOWN SYMBIOSIS",
                 "desc": "Mantenimiento de Mutualismo entre Pez Payaso y Anémonas",
+                "objective": "Protege la anémona y conserva la relación de mutualismo.",
+                "concept": "El pez obtiene refugio; la anémona recibe protección y limpieza.",
+                "controls": "Flechas o WASD: mover. Limpia parásitos morados, ahuyenta depredadores y vuelve a la anémona.",
                 "active": True,
                 "module": ClownSymbiosisModule
             },
@@ -65,6 +72,9 @@ class CoralOrangeLauncher:
                 "id": 3,
                 "title": "3. TROPHIC BALANCE",
                 "desc": "Gestión de Cadenas Tróficas y Áreas Marinas Protegidas",
+                "objective": "Evita el colapso de la red trófica durante la simulación.",
+                "concept": "La protección de depredadores ayuda a mantener el equilibrio entre niveles tróficos.",
+                "controls": "ESPACIO: activar o retirar el Área Marina Protegida (AMP).",
                 "active": True,
                 "module": TrophicBalanceModule
             },
@@ -72,6 +82,9 @@ class CoralOrangeLauncher:
                 "id": 4,
                 "title": "4. ACIDIFICATION LAB",
                 "desc": "Química Marina, Monitoreo de pH y Calcificación Calcárea",
+                "objective": "Preserva la estructura calcárea frente a la acidificación.",
+                "concept": "Más CO2 disuelto reduce el pH y la disponibilidad de carbonato para calcificar.",
+                "controls": "ESPACIO: aplicar una dosis de amortiguador alcalino.",
                 "active": True,
                 "module": AcidificationLabModule
             }
@@ -79,6 +92,7 @@ class CoralOrangeLauncher:
 
         self.selected_index = 0
         self.active_module = None
+        self.show_intro = False
 
     async def run(self):
         """Bucle principal del selector y gestor de módulos."""
@@ -111,12 +125,19 @@ class CoralOrangeLauncher:
                     elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                         # Volver al menú principal
                         self.active_module = None
+                        self.show_intro = False
+                    elif self.show_intro:
+                        if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                            self.show_intro = False
                     else:
                         self.active_module.handle_event(event)
 
                 if self.active_module:
-                    self.active_module.update(dt)
+                    if not self.show_intro:
+                        self.active_module.update(dt)
                     self.active_module.draw(self.screen, self.font_title, self.font_sub)
+                    if self.show_intro:
+                        self._draw_intro()
 
             pygame.display.flip()
             await asyncio.sleep(0)
@@ -127,6 +148,44 @@ class CoralOrangeLauncher:
         """Inicializa el módulo seleccionado."""
         module_class = self.modules_info[self.selected_index]["module"]
         self.active_module = module_class(self.width, self.height)
+        self.show_intro = True
+
+    def _draw_intro(self):
+        module = self.modules_info[self.selected_index]
+        accent = self.module_colors[self.selected_index]
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((3, 12, 19, 185))
+        self.screen.blit(overlay, (0, 0))
+
+        panel = pygame.Rect((self.width - 680) // 2, (self.height - 380) // 2, 680, 380)
+        pygame.draw.rect(self.screen, (10, 35, 43), panel, border_radius=8)
+        pygame.draw.rect(self.screen, accent, panel, 1, border_radius=8)
+
+        kicker = self.font_micro.render(f"PREPARACIÓN   /   0{self.selected_index + 1}", True, accent)
+        self.screen.blit(kicker, (panel.x + 28, panel.y + 24))
+        title = self.font_intro_title.render(module["title"].split(". ", 1)[-1], True, (247, 242, 225))
+        self.screen.blit(title, (panel.x + 28, panel.y + 48))
+
+        sections = (
+            ("OBJETIVO", module["objective"]),
+            ("CONCEPTO", module["concept"]),
+            ("CONTROLES", module["controls"]),
+        )
+        for index, (heading, text) in enumerate(sections):
+            heading_y = panel.y + 105 + index * 76
+            heading_surface = self.font_micro.render(heading, True, accent)
+            self.screen.blit(heading_surface, (panel.x + 28, heading_y))
+            self._draw_wrapped_text(
+                text,
+                self.font_sub,
+                (203, 220, 211),
+                pygame.Rect(panel.x + 28, heading_y + 19, panel.width - 56, 48),
+            )
+
+        start = self.font_option.render("ENTER / ESPACIO  ·  COMENZAR", True, (247, 242, 225))
+        back = self.font_sub.render("ESC  ·  VOLVER", True, (137, 177, 171))
+        self.screen.blit(start, (panel.x + 28, panel.bottom - 39))
+        self.screen.blit(back, (panel.right - back.get_width() - 28, panel.bottom - 37))
 
     def _draw_menu(self):
         """Renderiza el selector como una estación de monitoreo submarina."""

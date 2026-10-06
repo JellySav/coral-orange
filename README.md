@@ -69,13 +69,15 @@ python main.py
 
 ### Vista en navegador
 
-En un Codespace sin escritorio gráfico, inicia el servidor web:
+En un Codespace sin escritorio gráfico, instala PyGBag y genera la build:
 
 ```bash
-python -m pygbag --bind 0.0.0.0 --port 8000 --width 900 --height 600 --ume_block 0 main.py
+python -m pip install pygbag
+python -m pygbag --build --width 900 --height 600 --ume_block 0 main.py
+python serve_game.py --bind 0.0.0.0 --port 8000
 ```
 
-Abre el puerto **8000** en la pestaña **Ports** de VS Code para jugar desde el navegador.
+Abre el puerto **8000** en la pestaña **Ports** de VS Code para jugar desde el navegador. `serve_game.py` proxifica el runtime oficial bajo el mismo origen para que el aislamiento de WebAssembly no bloquee sus descargas.
 
 ### Ejecución Independiente de Módulos
 Cada módulo dentro de `modules/` incluye un bucle de prueba autónomo. Puedes ejecutar cualquiera directamente:
@@ -90,7 +92,9 @@ python modules/acidification_lab.py
 ### Controles Generales
 * Flechas ARRIBA / ABAJO o W / S: Navegar por el menú principal.
 
-* ENTER: Seleccionar/Iniciar módulo.
+* ENTER: Seleccionar el módulo activo desde el menú.
+
+* ENTER o ESPACIO: Comenzar después de leer el objetivo y los controles del módulo.
 
 * ESPACIO: Acción principal de cada módulo (en Clown Symbiosis, usa las flechas o WASD para mover el pez).
 

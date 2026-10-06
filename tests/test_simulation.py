@@ -12,6 +12,7 @@ from modules.acidification_lab import AcidificationLabModule
 from modules.bleaching_alert import BleachingAlertModule
 from modules.clown_symbiosis import ClownSymbiosisModule
 from modules.trophic_balance import Creature, TrophicBalanceModule
+from serve_game import CDN_ROUTE, rewrite_html
 
 
 class SimulationTests(unittest.TestCase):
@@ -37,6 +38,19 @@ class SimulationTests(unittest.TestCase):
             launcher.selected_index = index
             launcher._launch_selected_module()
             self.assertIsInstance(launcher.active_module, module_type)
+            self.assertTrue(launcher.show_intro)
+
+    def test_web_page_uses_same_origin_for_runtime_assets(self):
+        page = (
+            b'<script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"></script>'
+            b'<script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>'
+        )
+
+        rewritten = rewrite_html(page)
+
+        self.assertIn(CDN_ROUTE.encode() + b"0.9.3/pythons.js", rewritten)
+        self.assertNotIn(b"pygame-web.github.io", rewritten)
+        self.assertNotIn(b"browserfs.min.js", rewritten)
 
     def test_simulation_rates_are_stable_at_30_and_60_fps(self):
         coral_60 = ReefOrganism("a", "coral", 0, 0, "CORAL", (255, 127, 80))
